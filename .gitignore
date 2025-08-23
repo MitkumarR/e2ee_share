@@ -1,0 +1,84 @@
+# --------------------------------------------------------------------------------------------------
+# Python-specific files and directories
+# --------------------------------------------------------------------------------------------------
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment directories
+# venv/ and .venv/ are common, but you may have others
+# This is a critical one to include to prevent large project folders
+.venv/
+venv/
+env/
+/site/
+
+# Distribution and packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --------------------------------------------------------------------------------------------------
+# Local development and IDE files
+# --------------------------------------------------------------------------------------------------
+
+# IDE-specific files (for various popular IDEs)
+.idea/                          # PyCharm, IntelliJ IDEA
+.vscode/                        # Visual Studio Code
+.sublime/                       # Sublime Text
+*.swp                           # Vim
+.atom/                          # Atom
+.project                        # Eclipse
+.pydevproject                   # Eclipse + PyDev
+.DS_Store                       # macOS
+Thumbs.db                       # Windows
+
+# --------------------------------------------------------------------------------------------------
+# Configuration and sensitive data files
+# --------------------------------------------------------------------------------------------------
+
+# Environment variables and other config files
+# This is crucial for security! NEVER commit these files.
+.env
+.flaskenv
+instance/                       # Flask's instance folder, often used for config
+
+# Database files
+*.sqlite3
+*.db
+*.sqldb
+*.log
+
+# --------------------------------------------------------------------------------------------------
+# Other temporary files
+# --------------------------------------------------------------------------------------------------
+
+# Unit test and coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# Other temporary files that may be generated
+*.bak
+*.tmp
+*.log
+!error.log                      # an example to exclude all logs but include a specific one
