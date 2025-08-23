@@ -57,7 +57,7 @@ Thumbs.db                       # Windows
 
 # Environment variables and other config files
 # This is crucial for security! NEVER commit these files.
-.env
+auth/.env
 .flaskenv
 instance/                       # Flask's instance folder, often used for config
 

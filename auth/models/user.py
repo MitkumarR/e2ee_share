@@ -1,18 +1,17 @@
 # /auth-services/models/user.py
 
-from auth.extensions import db, bcrypt
+from extensions import db, bcrypt
 import datetime
 
 class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, username, email, password):
+    def __init__(self, email, password):
         self.email = email
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
@@ -21,4 +20,4 @@ class User(db.Model):
         return bcrypt.check_password_hash(self.password_hash, password)
 
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<User {self.email}>'

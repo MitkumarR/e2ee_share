@@ -1,23 +1,22 @@
-from auth.models.user import User
-from auth.extensions import db
+from models.user import User
+from extensions import db
 from flask_jwt_extended import create_access_token
 
-def register_user(data):
+def user_register(data):
     """Handles user registration logic."""
-    username = data.get('username')
     email = data.get('email')
     password = data.get('password')
 
-    if User.query.filter_by(email=email).first() or User.query.filter_by(username=username).first():
+    if User.query.filter_by(email=email).first():
         return {'message': 'User already exists'}, 409
 
-    new_user = User(username=username, email=email, password=password)
+    new_user = User(email=email, password=password)
     db.session.add(new_user)
     db.session.commit()
 
     return {'message': 'User registered successfully'}, 201
 
-def login_user(data):
+def user_login(data):
     """Handles user login logic."""
     email = data.get('email')
     password = data.get('password')
