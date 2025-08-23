@@ -11,6 +11,7 @@ __pycache__/
 # venv/ and .venv/ are common, but you may have others
 # This is a critical one to include to prevent large project folders
 .venv/
+./.venv/*.xml
 venv/
 env/
 /site/
