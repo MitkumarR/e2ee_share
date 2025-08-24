@@ -4,10 +4,12 @@ from flask import Flask
 from config import config_by_name
 from extensions import db, bcrypt, jwt, migrate
 from routes.auth_routes import auth_bp
+from flask_cors import CORS
 
 def create_app(config_name='development'):
     """Application factory function."""
     app = Flask(__name__)
+    CORS(app)
     app.config.from_object(config_by_name[config_name])
 
     # Initialize extensions

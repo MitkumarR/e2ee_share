@@ -1,163 +1,134 @@
+// In dashboard/src/pages/register.tsx
+
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Register: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [step, setStep] = useState<'email' | 'otp' | 'details'>('email');
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(''); // Reset error on new submission
-
-    // Basic validation: Check if passwords match
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return; // Stop the submission
+  // Step 1: Send OTP to user's email
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await fetch('http://localhost:5001/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      setStep('otp'); // Move to next step
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred.');
+      }
     }
+  };
 
-    // TODO: Implement your registration logic here
-    // This is where you would typically make an API call to your backend
-    console.log('Registering with:', { username, email, password });
+  // Step 2: Verify the OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await fetch('http://localhost:5001/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      // NOTE: The backend sends a 'verification_token' which should ideally
+      // be used in the final registration step for better security.
+      // The current backend implementation does not use it.
+      setStep('details'); // Move to final step
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred.');
+      }
+    }
+  };
 
-    // Handle successful registration (e.g., redirect to login or dashboard)
+  // Step 3: Complete registration with user details
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const response = await fetch('http://localhost:5001/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      
+      // Registration successful, redirect to login
+      navigate('/login');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred.');
+      }
+    }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <div className="text-center">
-          {/* You can replace this with your app's logo */}
-          <svg
-            className="w-12 h-12 mx-auto text-gray-800 dark:text-gray-200"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-            />
-          </svg>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
-            Create a new account
-          </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Or{' '}
-            <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to your existing account
-            </a>
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4 rounded-md shadow-sm">
-            {/* Username Input */}
-            <div>
-              <label
-                htmlFor="username"
-                className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="relative block w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-gray-50 border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                placeholder="your-username"
-              />
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-sm dark:bg-gray-800">
+        {/* Render different forms based on the current step */}
+        
+        {step === 'email' && (
+          <form onSubmit={handleSendOtp}>
+            <h1 className="text-2xl font-bold text-center">Create Account</h1>
+            <p className="text-sm text-center text-gray-600">Enter your email to start</p>
+            {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
+            <div className="mt-4">
+              <label htmlFor="email-address">Email address</label>
+              <input id="email-address" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 mt-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" />
             </div>
+            <button type="submit" className="w-full px-4 py-2 mt-4 text-white bg-blue-600 rounded-md hover:bg-blue-700">Send OTP</button>
+          </form>
+        )}
 
-            {/* Email Input */}
-            <div>
-              <label
-                htmlFor="email-address"
-                className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-gray-50 border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                placeholder="you@example.com"
-              />
+        {step === 'otp' && (
+          <form onSubmit={handleVerifyOtp}>
+            <h1 className="text-2xl font-bold text-center">Verify Email</h1>
+            <p className="text-sm text-center text-gray-600">An OTP was sent to {email}</p>
+            {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
+            <div className="mt-4">
+              <label htmlFor="otp">OTP</label>
+              <input id="otp" type="text" required value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full px-3 py-2 mt-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" />
             </div>
+            <button type="submit" className="w-full px-4 py-2 mt-4 text-white bg-blue-600 rounded-md hover:bg-blue-700">Verify</button>
+          </form>
+        )}
 
-            {/* Password Input */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-gray-50 border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                placeholder="••••••••"
-              />
+        {step === 'details' && (
+          <form onSubmit={handleRegister}>
+            <h1 className="text-2xl font-bold text-center">Final Details</h1>
+            {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
+            <div className="mt-4">
+              <label htmlFor="username">Username</label>
+              <input id="username" type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 mt-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" />
             </div>
-
-            {/* Confirm Password Input */}
-            <div>
-              <label
-                htmlFor="confirm-password"
-                className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Confirm Password
-              </label>
-              <input
-                id="confirm-password"
-                name="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-gray-50 border border-gray-300 rounded-md appearance-none focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                placeholder="••••••••"
-              />
+            <div className="mt-4">
+              <label htmlFor="password">Password</label>
+              <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 mt-1 text-gray-900 bg-gray-50 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white" />
             </div>
-          </div>
-
-          {/* Error Message Display */}
-          {error && (
-            <div className="p-3 text-sm text-center text-red-800 bg-red-100 rounded-md dark:bg-red-200 dark:text-red-900">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              className="relative flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md group hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Create account
-            </button>
-          </div>
-        </form>
+            <button type="submit" className="w-full px-4 py-2 mt-4 text-white bg-blue-600 rounded-md hover:bg-blue-700">Create Account</button>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -9,9 +9,8 @@ import Register from './pages/register';
 // A simple mock for authentication status
 // In a real app, this would be managed by a context, state management library, or hooks.
 const isAuthenticated = () => {
-  // For demonstration, we'll assume the user is authenticated.
-  // Replace this with your actual authentication check (e.g., checking for a token).
-  return true; 
+  // Check if the access token exists in local storage
+  return !!localStorage.getItem('access_token');
 };
 
 // A wrapper for protected routes

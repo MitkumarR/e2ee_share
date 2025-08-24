@@ -1,14 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // TODO: Implement your authentication logic here
-    console.log('Logging in with:', { email, password });
-    // Example: Call an API endpoint with the email and password
+    
+    try {
+      const response = await fetch('http://localhost:5001/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to login.');
+      }
+
+      // On successful login, save the token and redirect
+      localStorage.setItem('access_token', data.access_token);
+      navigate('/'); // Redirect to the dashboard
+
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+        console.error('Login failed:', err);
+      } else {
+        setError('An unknown error occurred.');
+        console.error('Login failed:', err);
+      }
+    }
+
   };
 
   return (
@@ -34,8 +64,11 @@ const Login: React.FC = () => {
             Sign in to your account
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Or{' '}
-            <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+            Or{" "}
+            <a
+              href="/register"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               create a new account
             </a>
           </p>
@@ -91,12 +124,18 @@ const Login: React.FC = () => {
                 type="checkbox"
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
               />
-              <label htmlFor="remember-me" className="block ml-2 text-sm text-gray-900 dark:text-gray-300">
+              <label
+                htmlFor="remember-me"
+                className="block ml-2 text-sm text-gray-900 dark:text-gray-300"
+              >
                 Remember me
               </label>
             </div>
             <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+              <a
+                href="#"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Forgot your password?
               </a>
             </div>
