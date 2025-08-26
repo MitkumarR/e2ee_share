@@ -15,12 +15,19 @@ import 'react-toastify/dist/ReactToastify.css';
 
 function Register() {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
   const navigate = useNavigate();
 
   const handleRegister = async () => {
+    if (password !== password2) {
+      toast.error('Passwords do not match');
+      return;
+    }
     try {
       const response = await axios.post('http://localhost:5000/register', {
+        email,
         username,
         password,
       });
@@ -74,7 +81,7 @@ function Register() {
               gutterBottom
               fontWeight="bold"
             >
-              Join Us! Secure your Files today!
+              E2EE Share
             </Typography>
             <Typography variant="body1" color="textSecondary" mb={4}>
               Create an account to get started.
@@ -89,6 +96,14 @@ function Register() {
                 onChange={(e) => setUsername(e.target.value)}
               />
               <TextField
+                label="Email"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <TextField
                 label="Password"
                 type="password"
                 variant="outlined"
@@ -96,6 +111,15 @@ function Register() {
                 margin="normal"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+              />
+              <TextField
+                label="Confirm password"
+                type="password2"
+                variant="outlined"
+                fullWidth
+                margin="normal"
+                value={password2}
+                onChange={(e) => setPassword2(e.target.value)}
               />
               <Button
                 variant="contained"

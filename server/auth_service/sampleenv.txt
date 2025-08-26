@@ -1,0 +1,4 @@
+SECRETKEY=[your secret key]
+    SQLALCHEMY_DATABASE_URI = 'postgresql://user:password@host:port/database_name'
+AUTHSECRET=[secret for JWT]
+EXPIRESSECONDS=3000 

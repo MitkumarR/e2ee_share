@@ -31,7 +31,7 @@ function AuthProvider({ children }) {
   );
 }
 
-function App() {
+export default function App() {
 
   return (
       <AuthProvider>
@@ -73,4 +73,4 @@ function ProtectedRoute({ Component, redirectTo }) {
   return <Component />;
 }
 
-export default App;
+export { useAuth };

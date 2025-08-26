@@ -13,10 +13,10 @@ import {
 } from '@mui/material';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useAuth } from '../../../../e2ee pro repos/LockBox---LockBox-Vault-Advanced-File-Encryption-and-Secure-Sharing-Web-Application-master/LockBox---LockBox-Vault-Advanced-File-Encryption-and-Secure-Sharing-Web-Application-master/frontend/src/App'; // Import Auth Context
+import { useAuth } from '../App';
 
 function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth(); // Use Auth Context
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ function Login() {
   const handleLogin = async () => {
     try {
       const response = await axios.post('http://localhost:5000/login', {
-        username,
+        email,
         password,
       });
 
@@ -81,19 +81,19 @@ function Login() {
               gutterBottom
               fontWeight="bold"
             >
-              Welcome Back to LockBox!
+              E2EE Share
             </Typography>
             <Typography variant="body1" color="textSecondary" mb={4}>
               Please enter your credentials to continue.
             </Typography>
             <Box>
               <TextField
-                label="Username"
+                label="Email"
                 variant="outlined"
                 fullWidth
                 margin="normal"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
               <TextField
                 label="Password"
