@@ -10,11 +10,11 @@ def generate_otp(length=6):
     """Generate a random OTP."""
     return ''.join(random.choices(string.digits, k=length))
 
-def send_otp_email(user_email, otp):
+def send_otp_email(user_email, otp, otp_expiration):
     """Sends an OTP to the user's email address."""
     try:
         msg = Message('Your Verification Code', recipients=[user_email])
-        msg.body = f'Your OTP for registration is: {otp}\nThis code will expire in 10 minutes.'
+        msg.body = f'Your OTP for registration is: {otp}\nThis code will expire in {otp_expiration} minutes.'
         mail.send(msg)
         return True
     except Exception as e:

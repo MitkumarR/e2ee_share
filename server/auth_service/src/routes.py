@@ -27,9 +27,9 @@ def register():
     new_user.set_password(password)
     otp = generate_otp()
     new_user.otp = otp
-    new_user.otp_expiration = datetime.utcnow() + timedelta(minutes=10)
+    new_user.otp_expiration = datetime.utcnow() + timedelta(minutes=1)
 
-    if not send_otp_email(email, otp):
+    if not send_otp_email(email, otp, new_user.otp_expiration):
         return jsonify({"msg": "Failed to send OTP email"}), 500
 
     db.session.add(new_user)

@@ -14,7 +14,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function Register() {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
@@ -26,9 +25,8 @@ function Register() {
       return;
     }
     try {
-      const response = await axios.post('http://localhost:5000/register', {
+      const response = await axios.post('http://localhost:5001/auth/register', {
         email,
-        username,
         password,
       });
 
@@ -87,14 +85,7 @@ function Register() {
               Create an account to get started.
             </Typography>
             <Box>
-              <TextField
-                label="Username"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+              
               <TextField
                 label="Email"
                 variant="outlined"
@@ -114,7 +105,7 @@ function Register() {
               />
               <TextField
                 label="Confirm password"
-                type="password2"
+                type="password"
                 variant="outlined"
                 fullWidth
                 margin="normal"

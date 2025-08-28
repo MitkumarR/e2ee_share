@@ -3,6 +3,10 @@
 
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Get the absolute path of the directory containing the current file.
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -11,9 +15,13 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 def get_postgres_uri():
     user = os.environ.get('POSTGRES_USER')
     password = os.environ.get('POSTGRES_PASSWORD')
-    host = os.environ.get('POSTGRES_HOST')
-    port = os.environ.get('POSTGRES_PORT')
+    host = os.environ.get('POSTGRES_HOST', 'localhost')
+    port = os.environ.get('POSTGRES_PORT', '5432')
     db_name = os.environ.get('POSTGRES_DB')
+    
+    if not all([user, password, db_name]):
+        raise ValueError("Missing required database environment variables")
+    
     return f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
 
 class Config:
