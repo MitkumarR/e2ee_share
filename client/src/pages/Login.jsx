@@ -2,45 +2,53 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
-  Container,
+  Grid,
+  Card,
+  CardContent,
   TextField,
   Button,
   Typography,
   Box,
-  Grid,
-  Card,
-  CardContent,
 } from '@mui/material';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useAuth } from '../App';
+// Make sure you have a useAuth hook or context defined in App.jsx or a separate file
+// For now, we'll write directly to localStorage.
+// import { useAuth } from '../App';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth(); // Use Auth Context
+  // const { login } = useAuth(); // This would be ideal
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/login', {
+      const response = await axios.post('http://localhost:5001/auth/login', {
         email,
         password,
       });
 
-      if (response.data.message === 'Login successful') {
+      // The backend now sends a token directly on success
+      if (response.data.access_token) {
         toast.success('Login successful! Redirecting to the dashboard...');
-        login(response.data.userId); // Update Auth Context
+        
+        // Save the token to localStorage
+        localStorage.setItem('access_token', response.data.access_token);
+        
+        // If you were using a context: login(response.data.access_token);
+        
         setTimeout(() => {
-          navigate('/dashboard'); // Redirect to dashboard after a delay
-        }, 2000); // 2-second delay
+          navigate('/'); // Navigate to the protected dashboard route
+        }, 1000);
       } else {
-        toast.error(response.data.error || 'Invalid credentials');
+        // This case might not be reached if the backend returns proper error codes
+        toast.error(response.data.msg || 'Invalid credentials');
       }
     } catch (error) {
       console.error('Login error:', error.response?.data || error.message);
       toast.error(
-        error.response?.data?.error || 'Error logging in. Please try again.'
+        error.response?.data?.msg || 'Error logging in. Please try again.'
       );
     }
   };
@@ -51,9 +59,8 @@ function Login() {
       justifyContent="center"
       alignItems="center"
       style={{
-        height: '98vh', // Use the full height of the viewport
-        overflow: 'hidden', // Disable scrolling
-        background: 'linear-gradient(135deg, #6A11CB 0%, #2575FC 100%)',
+        height: '98vh',
+        overflow: 'hidden',
         color: '#fff',
       }}
     >

@@ -43,6 +43,8 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or os.environ.get('MAIL_USERNAME')
 
+    REDIS_URL = os.environ.get('REDIS_URL')
+    
     @staticmethod
     def init_app(app):
         pass

@@ -13,9 +13,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
-    otp = db.Column(db.String(6), nullable=True)
-    otp_expiration = db.Column(db.DateTime, nullable=True)
-
+    
     def __repr__(self):
         return f'<User {self.email}>'
 

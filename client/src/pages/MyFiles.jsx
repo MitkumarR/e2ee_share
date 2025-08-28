@@ -22,81 +22,44 @@ function MyFiles() {
   const [files, setFiles] = useState([]);
   const [secretKey, setSecretKey] = useState('');
   const [downloadFileId, setDownloadFileId] = useState('');
-  const userId = localStorage.getItem('userId');
+  const token = localStorage.getItem('access_token');
 
   useEffect(() => {
-    if (userId) {
+    if (token) {
       fetchFiles();
     } else {
-      toast.error('User ID not found. Please log in again.');
+      toast.error('You are not logged in. Please log in again.');
     }
-  }, [userId]);
+  }, [token]);
 
   const fetchFiles = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/files', {
-        params: { userId },
+      // NOTE: Your backend doesn't have a '/files' GET endpoint yet.
+      // This is a placeholder for when you create it.
+      const response = await axios.get('http://localhost:5002/files/my-files', { // Assuming this will be the endpoint
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.data.length > 0) {
-        setFiles(response.data);
-      } else {
-        toast.info('No files found for this user.');
+      setFiles(response.data);
+      if (response.data.length === 0) {
+        toast.info('You haven\'t uploaded any files yet.');
       }
     } catch (error) {
       console.error('Error fetching files:', error);
       toast.error(
-        error.response?.data?.error || 'Error fetching files. Please try again later.'
+        error.response?.data?.error || 'Could not fetch your files.'
       );
     }
   };
 
   const handleDownload = async (fileId) => {
-    const file = files.find((f) => f._id === fileId);
-    if (!file) {
-      toast.error('File not found in the current list.');
-      return;
-    }
-    const { filename, iv, originalName } = file;
-
-    if (!secretKey) {
-      toast.error('Please enter the secret key.');
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `http://localhost:5000/download/${filename}`,
-        { secretKey, iv },
-        { responseType: 'blob' }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', originalName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success('File downloaded successfully!');
-      setDownloadFileId('');
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      toast.error('Error downloading file. Check your secret key.');
-    }
+    // This function will need a corresponding backend endpoint that serves the file.
+    // For now, this is a placeholder.
+    toast.info("Download functionality is not yet implemented on the backend.");
   };
 
   const handleDelete = async (fileId) => {
-    try {
-      await axios.delete(`http://localhost:5000/files/${fileId}`, {
-        params: { userId },
-      });
-      toast.success('File deleted successfully!');
-      fetchFiles(); // Refresh file list
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      toast.error('Error deleting file.');
-    }
+     // This function will need a corresponding backend endpoint.
+    toast.info("Delete functionality is not yet implemented on the backend.");
   };
 
   return (
@@ -107,14 +70,12 @@ function MyFiles() {
       </Typography>
       <Grid container spacing={3}>
         {files.map((file) => (
-          <Grid item xs={12} key={file._id}>
+          <Grid item xs={12} key={file.id}>
             <Card
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 padding: 2,
-                backgroundColor: '#ffffff',
-                color: '#000000',
                 borderRadius: 4,
                 boxShadow: 2,
               }}
@@ -124,31 +85,23 @@ function MyFiles() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  paddingBottom: '8px',
                 }}
               >
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
-                    {file.originalName}
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    {file.filename}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#555' }}>
-                    Uploaded: {new Date(file.createdAt).toLocaleString()}
+                    Size: {file.size} bytes
                   </Typography>
                 </Box>
               </CardContent>
-              <CardActions
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 16px',
-                }}
-              >
+              <CardActions>
                 <Button
                   variant="contained"
                   color="primary"
                   startIcon={<DownloadIcon />}
-                  onClick={() => setDownloadFileId(file._id)}
-                  sx={{ flexGrow: 1, marginRight: 1, textTransform: 'capitalize' }}
+                  onClick={() => setDownloadFileId(file.id)}
                 >
                   Download
                 </Button>
@@ -156,8 +109,7 @@ function MyFiles() {
                   variant="contained"
                   color="error"
                   startIcon={<DeleteIcon />}
-                  onClick={() => handleDelete(file._id)}
-                  sx={{ flexGrow: 1, textTransform: 'capitalize' }}
+                  onClick={() => handleDelete(file.id)}
                 >
                   Delete
                 </Button>
@@ -167,9 +119,8 @@ function MyFiles() {
         ))}
       </Grid>
 
-      {/* Dialog for Secret Key Input */}
       <Dialog open={!!downloadFileId} onClose={() => setDownloadFileId('')} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 'bold', color: '#1976d2' }}>Enter Secret Key</DialogTitle>
+        <DialogTitle>Enter Secret Key to Download</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -186,16 +137,7 @@ function MyFiles() {
             onClick={() => handleDownload(downloadFileId)}
             sx={{ mt: 2 }}
           >
-            Download
-          </Button>
-          <Button
-            fullWidth
-            variant="outlined"
-            color="secondary"
-            onClick={() => setDownloadFileId('')}
-            sx={{ mt: 1 }}
-          >
-            Cancel
+            Confirm & Download
           </Button>
         </DialogContent>
       </Dialog>

@@ -20,8 +20,6 @@ function UploadFile() {
   const [secretKey, setSecretKey] = useState('');
   const [showKeyDialog, setShowKeyDialog] = useState(false);
 
-  const userId = localStorage.getItem('userId');
-
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
@@ -39,22 +37,29 @@ function UploadFile() {
       return;
     }
 
-    if (!userId) {
-      toast.error('User ID not found. Please log in again.');
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      toast.error('You are not logged in. Please log in again.');
       return;
     }
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('userId', userId);
+    // Note: The backend already gets the user ID from the token,
+    // so we don't need to send userId anymore.
 
     try {
-      const response = await axios.post('http://localhost:5000/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await axios.post('http://localhost:5002/files/upload', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}` // <-- Add the token here
+        },
       });
 
-      if (response.data && response.data.secretKey) {
-        setSecretKey(response.data.secretKey);
+      if (response.data && response.data.file_id) { // Check for a valid response
+        // Note: The file service backend doesn't seem to return a secretKey.
+        // This dialog part might need adjustment based on the final backend logic.
+        // setSecretKey(response.data.secretKey); 
         setShowKeyDialog(true);
         toast.success('File uploaded successfully!');
       } else {
@@ -102,17 +107,20 @@ function UploadFile() {
       </Button>
 
       <Dialog open={showKeyDialog} onClose={() => setShowKeyDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Encryption Details</DialogTitle>
+        <DialogTitle>File Uploaded!</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
-            Save this secret key. You will need it to download and decrypt your file.
+            Your file was uploaded successfully. You can now find it in "My Files".
           </Typography>
-          <Box display="flex" alignItems="center" mt={2}>
-            <TextField fullWidth value={secretKey} InputProps={{ readOnly: true }} />
-            <IconButton color="primary" onClick={copyToClipboard}>
-              <ContentCopyIcon />
-            </IconButton>
-          </Box>
+           {/* This section can be used if you implement the secret key feature */}
+           {secretKey && (
+            <Box display="flex" alignItems="center" mt={2}>
+              <TextField fullWidth value={secretKey} InputProps={{ readOnly: true }} />
+              <IconButton color="primary" onClick={copyToClipboard}>
+                <ContentCopyIcon />
+              </IconButton>
+            </Box>
+           )}
           <Button
             fullWidth
             variant="outlined"
