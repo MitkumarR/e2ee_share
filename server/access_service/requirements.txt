@@ -1,0 +1,7 @@
+Flask
+Flask-JWT-Extended
+Flask-Cors
+Flask-Redis
+python-dotenv
+gunicorn
+redis

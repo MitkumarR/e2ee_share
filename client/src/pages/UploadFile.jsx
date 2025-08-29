@@ -1,24 +1,15 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-} from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { Box, Button, Typography, Dialog, DialogContent, DialogTitle, CircularProgress } from '@mui/material';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+import { storeFileKey } from '../utils/db';
 
-function UploadFile() {
+function UploadFile({ onUploadComplete }) {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState('');
-  const [secretKey, setSecretKey] = useState('');
-  const [showKeyDialog, setShowKeyDialog] = useState(false);
+  const [isEncrypting, setIsEncrypting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -33,102 +24,123 @@ function UploadFile() {
 
   const handleUpload = async () => {
     if (!file) {
-      toast.error('Please select a file.');
+      toast.error('Please select a file first.');
       return;
     }
 
     const token = localStorage.getItem('access_token');
     if (!token) {
-      toast.error('You are not logged in. Please log in again.');
+      toast.error('Authentication error. Please log in again.');
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-    // Note: The backend already gets the user ID from the token,
-    // so we don't need to send userId anymore.
+    setIsEncrypting(true);
+    toast.info('Encrypting your file... Please wait.');
 
     try {
+      // 1. Generate a random AES-GCM key client-side
+      const aesKey = await window.crypto.subtle.generateKey(
+        { name: 'AES-GCM', length: 256 },
+        true, // Allow the key to be extractable
+        ['encrypt', 'decrypt']
+      );
+
+      // 2. Read file content as an ArrayBuffer
+      const fileBuffer = await file.arrayBuffer();
+
+      // 3. Encrypt the file content
+      const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization Vector
+      const encryptedFileBuffer = await window.crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv },
+        aesKey,
+        fileBuffer
+      );
+
+      
+      // NOTE: This is where you would wrap the AES key.
+      // For now, we are skipping the RSA/ECIES wrapping part.
+      // In a real system, you would get the recipient's public key,
+      // encrypt `aesKey` with it, and send the wrapped key instead.
+      
+      const encryptedFileBlob = new Blob([iv, new Uint8Array(encryptedFileBuffer)], { type: 'application/octet-stream' });
+
+      // 4. Prepare metadata and upload
+      const formData = new FormData();
+      formData.append('file', encryptedFileBlob);
+      formData.append('filename', file.name);
+      formData.append('contentType', file.type);
+      formData.append('size', encryptedFileBlob.size);
+      
       const response = await axios.post('http://localhost:5002/files/upload', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}` // <-- Add the token here
+        headers: {
+          'Authorization': `Bearer ${token}`
         },
       });
 
-      if (response.data && response.data.file_id) { // Check for a valid response
-        // Note: The file service backend doesn't seem to return a secretKey.
-        // This dialog part might need adjustment based on the final backend logic.
-        // setSecretKey(response.data.secretKey); 
-        setShowKeyDialog(true);
-        toast.success('File uploaded successfully!');
-      } else {
-        toast.error('Unexpected response from the server.');
-      }
+      // 5. Securely store the new file key in IndexedDB
+      const newFile = response.data.file;
+      await storeFileKey(newFile.id, aesKey)
+      
+      setShowSuccessDialog(true);
+      
+      toast.success('File encrypted and uploaded successfully!');
+      
+      onUploadComplete({ file: response.data.file, key: aesKey });
+
     } catch (error) {
-      console.error('Upload Error:', error);
-      toast.error(
-        error.response?.data?.message || 'Error uploading file. Please try again later.'
-      );
+      console.error('E2EE Upload Error:', error);
+      toast.error(error.response?.data?.msg || 'An error occurred during the upload.');
+    } finally {
+      setIsEncrypting(false);
     }
-  };
-
-  const copyToClipboard = () => {
-    if (!secretKey) {
-      toast.error('No secret key available to copy.');
-      return;
-    }
-
-    navigator.clipboard.writeText(secretKey).then(
-      () => toast.success('Secret key copied to clipboard!'),
-      () => toast.error('Failed to copy the secret key.')
-    );
   };
 
   return (
     <Box textAlign="center">
       <ToastContainer />
-      <Box display="flex" justifyContent="center" mb={3}>
-        <input
-          type="file"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-          id="file-upload"
-        />
-        <label htmlFor="file-upload">
-          <Button variant="outlined" component="span">
-            Select File
-          </Button>
-        </label>
-        <Typography sx={{ ml: 2 }}>{fileName || 'No file selected'}</Typography>
+      <Box display="flex" justifyContent="center" alignItems="center" mb={3} sx={{ height: '56px' }}>
+        {isEncrypting ? (
+          <CircularProgress />
+        ) : (
+          <>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              id="file-upload"
+              disabled={isEncrypting}
+            />
+            <label htmlFor="file-upload">
+              <Button variant="outlined" component="span" disabled={isEncrypting}>
+                Select File
+              </Button>
+            </label>
+            <Typography sx={{ ml: 2 }}>{fileName || 'No file selected'}</Typography>
+          </>
+        )}
       </Box>
-      <Button variant="contained" color="primary" onClick={handleUpload}>
-        Upload
+      <Button variant="contained" color="primary" onClick={handleUpload} disabled={!file || isEncrypting}>
+        Encrypt & Upload
       </Button>
 
-      <Dialog open={showKeyDialog} onClose={() => setShowKeyDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>File Uploaded!</DialogTitle>
+      <Dialog open={showSuccessDialog} onClose={() => setShowSuccessDialog(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Upload Complete!</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
-            Your file was uploaded successfully. You can now find it in "My Files".
+            Your encrypted file has been securely uploaded.
           </Typography>
-           {/* This section can be used if you implement the secret key feature */}
-           {secretKey && (
-            <Box display="flex" alignItems="center" mt={2}>
-              <TextField fullWidth value={secretKey} InputProps={{ readOnly: true }} />
-              <IconButton color="primary" onClick={copyToClipboard}>
-                <ContentCopyIcon />
-              </IconButton>
-            </Box>
-           )}
           <Button
             fullWidth
             variant="outlined"
             color="secondary"
             sx={{ mt: 2 }}
-            onClick={() => setShowKeyDialog(false)}
+            onClick={() => {
+                setShowSuccessDialog(false);
+                setFile(null);
+                setFileName('');
+            }}
           >
-            Close
+            Done
           </Button>
         </DialogContent>
       </Dialog>
