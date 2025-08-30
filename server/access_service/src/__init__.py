@@ -11,7 +11,8 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*"}})
+     
     jwt.init_app(app)
     redis_client.init_app(app)
 

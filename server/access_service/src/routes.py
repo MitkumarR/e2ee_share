@@ -44,18 +44,25 @@ def get_link_details(share_id):
     """
     redis_key = f"share:{share_id}"
     
-    # Use a Redis transaction to ensure atomicity
     with redis_client.pipeline() as pipe:
         try:
-            pipe.watch(redis_key) # Watch for changes
+            pipe.watch(redis_key)
             
-            share_data = pipe.hgetall(redis_key)
-            if not share_data or share_data.get(b'valid') != b'true':
+            # We check the 'valid' flag first.
+            is_valid = pipe.hget(redis_key, "valid")
+            if not is_valid or is_valid.decode('utf-8') != 'true':
                 return jsonify({"msg": "Link is invalid, expired, or has already been used"}), 404
 
-            pipe.multi() # Start transaction
-            pipe.hset(redis_key, "valid", "false") # Invalidate the link
-            pipe.execute()
+            # If it's valid, we get all the data and invalidate it in one transaction.
+            pipe.multi()
+            pipe.hgetall(redis_key) # Queue command to get all data
+            pipe.hset(redis_key, "valid", "false") # Queue command to invalidate
+            
+            results = pipe.execute()
+            share_data = results[0] # The result of hgetall is the first item in the results
+
+            if not share_data: # Should not happen if watch/multi worked, but a good safeguard
+                return jsonify({"msg": "Link data could not be retrieved"}), 404
 
             # Decode the data for the JSON response
             return jsonify({
@@ -64,4 +71,5 @@ def get_link_details(share_id):
             }), 200
 
         except Exception as e:
+            print(f"Error in Redis transaction: {e}") # Added logging
             return jsonify({"msg": "An error occurred. Please try again."}), 500

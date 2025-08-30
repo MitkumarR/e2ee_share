@@ -80,12 +80,11 @@ function UploadFile({ onUploadComplete }) {
       // 5. Securely store the new file key in IndexedDB
       const newFile = response.data.file;
       await storeFileKey(newFile.id, aesKey)
-      
+
       setShowSuccessDialog(true);
       
       toast.success('File encrypted and uploaded successfully!');
-      
-      onUploadComplete({ file: response.data.file, key: aesKey });
+      onUploadComplete(); 
 
     } catch (error) {
       console.error('E2EE Upload Error:', error);

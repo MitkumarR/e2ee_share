@@ -260,9 +260,7 @@ function Dashboard() {
     }
   };
 
-  const handleUploadComplete = ({ file, key }) => {
-    // Store the new file's AES key in our state
-    setFileKeys((prevKeys) => ({ ...prevKeys, [file.id]: key }));
+  const handleUploadComplete = () => {
     fetchData(); // Refresh file list
     setIsUploadOpen(false);
   };
@@ -292,7 +290,17 @@ function Dashboard() {
 
       // ... (rest of the link generation logic is the same)
       const token = localStorage.getItem("access_token");
-      const response = await axios.post(/* ... */);
+      const response = await axios.post(
+        'http://localhost:5003/access/link/create', 
+        { 
+          file_id: file.id, 
+          wrapped_key: wrappedKey 
+        },
+        { 
+          headers: { Authorization: `Bearer ${token}` } 
+        }
+      );
+      
       const { share_id } = response.data;
       const fullLink = `${window.location.origin}/download/${share_id}#${linkSecret}`;
       setGeneratedLink(fullLink);
