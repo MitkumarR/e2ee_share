@@ -5,6 +5,7 @@ import {
   AppBar,
   Toolbar,
   List,
+  Link,
   ListItem,
   ListItemButton,
   ListItemIcon,
@@ -20,26 +21,24 @@ import {
   DialogContent,
   DialogTitle,
   CircularProgress,
+  Select,
+  FormControl,
+  InputLabel,
+  Stack,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Search,
   Add,
-  DriveFolderUpload,
   Folder,
-  History,
   Delete,
   Archive,
-  Star,
-  People,
-  Computer,
-  Cloud,
   RestoreFromTrash,
   DeleteForever,
   MoreVert,
   InsertDriveFile,
   Link as LinkIcon,
   ContentCopy,
+  Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -47,7 +46,8 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import UploadFile from "./UploadFile";
 import { generateLinkSecret, wrapFileKey } from "../utils/crypto";
-import { getFileKey, clearAllKeys } from '../utils/db';
+import { getFileKey, clearAllKeys } from "../utils/db";
+import { useNavigate } from "react-router-dom";
 
 // Helper to format bytes
 const formatBytes = (bytes, decimals = 2) => {
@@ -170,7 +170,15 @@ function FileRow({ file, onStatusChange, onPermanentDelete, onShare }) {
   );
 }
 
-function ShareDialog({ open, onClose, link }) {
+function ShareDialog({
+  open,
+  onClose,
+  link,
+  expiration,
+  onExpirationChange,
+  onGenerate,
+  generating,
+}) {
   const copyLink = () => {
     navigator.clipboard.writeText(link);
     toast.success("Link copied to clipboard!");
@@ -181,24 +189,61 @@ function ShareDialog({ open, onClose, link }) {
       <DialogTitle>Share File</DialogTitle>
       <DialogContent>
         <Typography gutterBottom>
-          Anyone with this link can download the file once. The link will expire
-          in 24 hours.
+          Choose how long the link should be valid. Anyone with this link can
+          download the file once.
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
-          <InputBase
-            value={link}
-            readOnly
-            sx={{
-              flex: 1,
-              border: "1px solid #ccc",
-              p: 1,
-              borderRadius: "4px",
-            }}
-          />
-          <IconButton onClick={copyLink}>
-            <ContentCopy />
-          </IconButton>
-        </Box>
+
+        <FormControl fullWidth sx={{ my: 2 }}>
+          <InputLabel id="expiration-label">Link Expires In</InputLabel>
+          <Select
+            labelId="expiration-label"
+            value={expiration}
+            label="Link Expires In"
+            onChange={(e) => onExpirationChange(e.target.value)}
+          >
+            <MenuItem value={300}>5 Minutes</MenuItem>
+            <MenuItem value={600}>10 Minutes</MenuItem>
+            <MenuItem value={900}>15 Minutes</MenuItem>
+            <MenuItem value={1800}>30 Minutes</MenuItem>
+            <MenuItem value={3600}>1 Hour</MenuItem>
+            <MenuItem value={21600}>6 Hours</MenuItem>
+            <MenuItem value={43200}>12 Hours</MenuItem>
+            <MenuItem value={86400}>24 Hours (Default)</MenuItem>
+            <MenuItem value={604800}>7 Days</MenuItem>
+          </Select>
+        </FormControl>
+
+        {link ? (
+          <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+            <InputBase
+              value={link}
+              readOnly
+              sx={{
+                flex: 1,
+                border: "1px solid #ccc",
+                p: 1,
+                borderRadius: "4px",
+              }}
+            />
+            <IconButton onClick={copyLink}>
+              <ContentCopy />
+            </IconButton>
+          </Box>
+        ) : (
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={onGenerate}
+            disabled={generating}
+            sx={{ mt: 2 }}
+          >
+            {generating ? (
+              <CircularProgress size={24} />
+            ) : (
+              "Generate Secure Link"
+            )}
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -212,6 +257,11 @@ function Dashboard() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
+  const [shareFile, setShareFile] = useState(null); // <-- Keep track of which file is being shared
+  const [linkExpiration, setLinkExpiration] = useState(86400); // <-- State for the expiration time
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [userEmail, setUserEmail] = useState("Loading...");
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
@@ -229,6 +279,25 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    const fetchUserEmail = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        // Call the protected endpoint to get user details
+        const response = await axios.get(
+          "http://localhost:5001/auth/protected",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setUserEmail(response.data.logged_in_as);
+      } catch (error) {
+        navigate("/login");
+        console.error("Failed to fetch user email:", error);
+        setUserEmail("User"); // Fallback email
+      }
+    };
+
+    fetchUserEmail();
     fetchData();
   }, []);
 
@@ -266,19 +335,34 @@ function Dashboard() {
   };
 
   const handleLogout = () => {
-    clearAllKeys(); // <-- Clear stored keys on logout
+    clearAllKeys(); // Clear stored keys on logout
     logout();
-  }
+  };
 
-  const handleGenerateLink = async (file) => {
+  const openShareDialog = (file) => {
+    setShareFile(file); // Set the file to be shared
+    setGeneratedLink(""); // Reset previous link
+    setLinkExpiration(86400); // Reset to default
+    setShareDialogOpen(true);
+  };
+
+  const handleGenerateLink = async () => {
+    if (!shareFile) {
+      toast.error("No file selected for sharing.");
+      return;
+    }
+
+    setIsGeneratingLink(true);
+
     try {
       // 1. Fetch the required key from IndexedDB
-      const fileKey = await getFileKey(file.id);
-      
+      const fileKey = await getFileKey(shareFile.id);
+
       if (!fileKey) {
         toast.error(
           "File key not found in this browser. Please re-upload to create a new key."
         );
+        setIsGeneratingLink(false); // Stop loading on error
         return;
       }
 
@@ -291,21 +375,21 @@ function Dashboard() {
       // ... (rest of the link generation logic is the same)
       const token = localStorage.getItem("access_token");
       const response = await axios.post(
-        'http://localhost:5003/access/link/create', 
-        { 
-          file_id: file.id, 
-          wrapped_key: wrappedKey 
+        "http://localhost:5003/access/link/create",
+        {
+          file_id: shareFile.id,
+          wrapped_key: wrappedKey,
+          expires_in: linkExpiration,
         },
-        { 
-          headers: { Authorization: `Bearer ${token}` } 
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
+
       const { share_id } = response.data;
       const fullLink = `${window.location.origin}/download/${share_id}#${linkSecret}`;
       setGeneratedLink(fullLink);
       setShareDialogOpen(true);
-
     } catch (error) {
       toast.error("Could not create share link.");
       console.error(error);
@@ -319,7 +403,7 @@ function Dashboard() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", backgroundColor: "#f8f9fa" }}>
+    <Box sx={{ display: "flex", height: "100vh" }}>
       <ToastContainer position="bottom-right" />
 
       {/* Sidebar */}
@@ -393,30 +477,21 @@ function Dashboard() {
       >
         <AppBar
           position="static"
-          color="transparent"
-          elevation={0}
-          sx={{ mb: 2 }}
+          color="default"
+          elevation={1}
+          sx={{ mb: 2, borderRadius: 2 }}
         >
-          <Toolbar>
-            <Paper
-              component="form"
-              sx={{
-                flexGrow: 1,
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                p: "2px 4px",
-              }}
+          <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Typography variant="h6" sx={{ fontWeight: "semibold" }}>
+              {userEmail}
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{ borderRadius: 2, textTransform: "none" }}
             >
-              <IconButton sx={{ p: "10px" }}>
-                <Search />
-              </IconButton>
-              <InputBase
-                sx={{ ml: 1, flex: 1 }}
-                placeholder="Search files..."
-              />
-            </Paper>
-            <Button color="inherit" onClick={handleLogout} sx={{ ml: 2 }}>
               Logout
             </Button>
           </Toolbar>
@@ -479,7 +554,7 @@ function Dashboard() {
                 file={file}
                 onStatusChange={handleStatusChange}
                 onPermanentDelete={handlePermanentDelete}
-                onShare={handleGenerateLink}
+                onShare={openShareDialog}
               />
             ))
           ) : (
@@ -510,7 +585,12 @@ function Dashboard() {
         open={shareDialogOpen}
         onClose={() => setShareDialogOpen(false)}
         link={generatedLink}
+        expiration={linkExpiration}
+        onExpirationChange={setLinkExpiration}
+        onGenerate={handleGenerateLink}
+        generating={isGeneratingLink}
       />
+
 
     </Box>
   );

@@ -17,6 +17,8 @@ def create_share_link():
     file_id = data.get('file_id')
     wrapped_key = data.get('wrapped_key') # The AES key, encrypted with the link_secret
 
+    expires_in_seconds = data.get('expires_in', 86400)
+
     if not all([file_id, wrapped_key]):
         return jsonify({"msg": "Missing file_id or wrapped_key"}), 400
 
@@ -31,7 +33,7 @@ def create_share_link():
         "wrapped_key": wrapped_key,
         "valid": "true" # Flag to check if the link has been used
     })
-    redis_client.expire(redis_key, 86400) # 24-hour expiry
+    redis_client.expire(redis_key, expires_in_seconds) # 24-hour expiry
 
     return jsonify({"share_id": share_id}), 201
 
