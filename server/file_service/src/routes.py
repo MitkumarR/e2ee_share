@@ -8,7 +8,7 @@ import os
 file_bp = Blueprint('files', __name__, url_prefix='/files')
 
 # Configure a simple upload folder
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = os.path.abspath('uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @file_bp.route('/upload', methods=['POST'])

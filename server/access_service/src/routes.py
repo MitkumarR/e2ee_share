@@ -69,7 +69,9 @@ def get_link_details(share_id):
                 "file_id": share_data.get(b'file_id', b'').decode('utf-8'),
                 "wrapped_key": share_data.get(b'wrapped_key', b'').decode('utf-8')
             }), 200
-
+            
+           
+            
         except Exception as e:
             print(f"Error in Redis transaction: {e}") # Added logging
             return jsonify({"msg": "An error occurred. Please try again."}), 500
