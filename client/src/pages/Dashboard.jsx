@@ -477,12 +477,13 @@ function Dashboard() {
       >
         <AppBar
           position="static"
-          color="default"
+          color="white"
           elevation={1}
+          
           sx={{ mb: 2, borderRadius: 2 }}
         >
           <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="h6" sx={{ fontWeight: "semibold" }}>
+            <Typography variant="h6" sx={{ fontWeight: "semibold", color: "black" }}>
               {userEmail}
             </Typography>
             <Button

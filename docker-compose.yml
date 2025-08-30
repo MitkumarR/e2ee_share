@@ -1,0 +1,82 @@
+
+services:
+  # --- Backend Services ---
+  auth_service:
+    build: ./server/auth_service
+    ports:
+      - "5001:8000"
+    environment:
+      - FLASK_CONFIG=production
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=db # Connect to the 'db' service
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0 # Connect to the 'redis' service
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    depends_on:
+      - db
+      - redis
+
+  file_service:
+    build: ./server/file_service
+    ports:
+      - "5002:8000"
+    volumes:
+      - ./file_service/uploads:/app/uploads # Persist uploaded files
+    environment:
+      - FLASK_CONFIG=production
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+    depends_on:
+      - db
+
+  access_control_service:
+    build: ./server/access_service
+    ports:
+      - "5003:8000"
+    environment:
+      - FLASK_CONFIG=production
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  # --- Frontend Service ---
+  client:
+    build: ./client
+    ports:
+      - "5173:80"
+
+  # --- Database and Cache Services ---
+  db:
+    image: postgres:14-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis/redis-stack-server:latest
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+
+volumes:
+  postgres_data:

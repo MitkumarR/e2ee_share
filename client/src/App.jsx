@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import "./App.css";
-
+import { Box } from '@mui/material';
 // Import the AuthProvider and useAuth hook
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -17,6 +17,7 @@ import Register from "./pages/Register";
 import Verify from "./pages/Verify";
 import SetPassword from "./pages/SetPassword";
 import DownloadPage from "./pages/DownloadPage";
+import Footer from "./components/Footer";
 
 // A new PrivateRoute that uses our context
 const PrivateRoute = ({ children }) => {
@@ -30,26 +31,31 @@ function App() {
       <AuthProvider>
         {" "}
         {/* Wrap everything in the AuthProvider */}
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify" element={<Verify />} />
-          <Route path="/set-password" element={<SetPassword />} />
-          <Route path="/download/:shareId" element={<DownloadPage />} />
-          {/* Protected Route for the Dashboard */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
+        <Box
+          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+        >
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify" element={<Verify />} />
+            <Route path="/set-password" element={<SetPassword />} />
+            <Route path="/download/:shareId" element={<DownloadPage />} />
+            {/* Protected Route for the Dashboard */}
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Fallback Route */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+            {/* Fallback Route */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+          <Footer />
+        </Box>
       </AuthProvider>
     </Router>
   );
