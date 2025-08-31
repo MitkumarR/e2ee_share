@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: access-control-service-deployment
+spec:
+  replicas: 1 # Start with 1, can be scaled later
+  selector:
+    matchLabels:
+      app: access-control-service
+  template:
+    metadata:
+      labels:
+        app: access-control-service
+    spec:
+      containers:
+        - name: access-control-service
+          image: your-dockerhub-username/access-control-service:latest # IMPORTANT: You need to push your image to a registry
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: e2ee-share-config
+            - secretRef:
+                name: e2ee-share-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: access-control-service
+spec:
+  selector:
+    app: access-control-service
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

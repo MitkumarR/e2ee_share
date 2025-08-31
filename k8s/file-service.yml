@@ -1,0 +1,55 @@
+# This file defines the File Service and its persistent storage for uploads.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: file-uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce # This volume can be mounted by a single node
+  resources:
+    requests:
+      storage: 5Gi # Request 5 Gigabytes of storage for file uploads
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-service-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-service
+  template:
+    metadata:
+      labels:
+        app: file-service
+    spec:
+      containers:
+        - name: file-service
+          image: your-dockerhub-username/file-service:latest # IMPORTANT: Push your image to a registry
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: e2ee-share-config
+            - secretRef:
+                name: e2ee-share-secrets
+          volumeMounts:
+            - name: file-uploads-storage
+              mountPath: /app/uploads # Mount the persistent volume into the container
+      volumes:
+        - name: file-uploads-storage
+          persistentVolumeClaim:
+            claimName: file-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-service # Internal DNS name for this service
+spec:
+  selector:
+    app: file-service
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

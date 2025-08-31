@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: client
+          image: your-dockerhub-username/client:latest # IMPORTANT: You need to push your images to a registry
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-service
+spec:
+  type: NodePort # Use LoadBalancer on cloud providers like GCP, AWS, Azure
+  selector:
+    app: client
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      # nodePort: 30000 # Optional: specify a port

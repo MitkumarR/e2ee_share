@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service-deployment
+spec:
+  replicas: 1 # Start with 1, can be scaled later
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: your-dockerhub-username/auth-service:latest # IMPORTANT: You need to push your images to a registry
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: e2ee-share-config
+            - secretRef:
+                name: e2ee-share-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
