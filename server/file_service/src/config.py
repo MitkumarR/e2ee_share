@@ -21,8 +21,30 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = get_postgres_uri()
 
+    @staticmethod
+    def init_app(app):
+        pass
+    
+class DevelopmentConfig(Config):
+    """Configuration for development."""
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or get_postgres_uri()
+
+class TestingConfig(Config):
+    """Configuration for testing."""
+    TESTING = True
+    # For testing, you might want a separate test database
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or 'sqlite://' # Or a test postgres DB
+    WTF_CSRF_ENABLED = False 
+
+class ProductionConfig(Config):
+    """Configuration for production."""
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or get_postgres_uri()
+    # Add other production-specific settings here
+
 config = {
-    'development': Config,
-    'production': Config,
-    'default': Config
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
 }
