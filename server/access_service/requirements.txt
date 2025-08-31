@@ -5,3 +5,5 @@ Flask-Redis
 python-dotenv
 gunicorn
 redis
+pytest
+pytest-mock
