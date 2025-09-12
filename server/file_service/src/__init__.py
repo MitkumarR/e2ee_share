@@ -13,7 +13,19 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
     
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # Define the specific origins that are allowed to make requests.
+    allowed_origins = [
+        "http://localhost:5173",  # For local development with `docker-compose`
+        "http://e2eeshare.local"    # For your Kubernetes deployment via Ingress
+    ]
+    
+    CORS(
+        app,
+        origins=allowed_origins,
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+        supports_credentials=True # Important for sending auth tokens
+    )
 
     db.init_app(app)
     jwt.init_app(app)

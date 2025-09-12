@@ -4,12 +4,28 @@ from src import db
 from src.models import File
 import uuid
 import os
+import swiftclient
+from src.config import Config
 
 file_bp = Blueprint('files', __name__, url_prefix='/files')
 
-# Configure a simple upload folder
-UPLOAD_FOLDER = os.path.abspath('uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+SWIFT_AUTH_URL = Config.SWIFT_AUTH_URL
+SWIFT_USER = Config.SWIFT_USER  
+SWIFT_KEY = Config.SWIFT_KEY
+SWIFT_CONTAINER = Config.SWIFT_CONTAINER
+
+def get_swift_conn():
+    """Helper to get a Swift connection."""
+    return swiftclient.Connection(
+        authurl=SWIFT_AUTH_URL,
+        user=SWIFT_USER,
+        key=SWIFT_KEY,
+        auth_version="1"
+    )
+    
+# # Configure a simple upload folder
+# UPLOAD_FOLDER = os.path.abspath('uploads')
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @file_bp.route('/upload', methods=['POST'])
 @jwt_required()
@@ -29,18 +45,30 @@ def upload_file():
 
     # Generate a unique path to store the encrypted file
     storage_filename = f"{uuid.uuid4()}.enc"
-    storage_path = os.path.join(UPLOAD_FOLDER, storage_filename)
+    # storage_path = os.path.join(UPLOAD_FOLDER, storage_filename)
     
     # Save the encrypted file blob to the filesystem
-    encrypted_file.save(storage_path)
+    # encrypted_file.save(storage_path)
 
+    conn = get_swift_conn()
+    try:
+        conn.put_container(SWIFT_CONTAINER)
+        conn.put_object(
+            SWIFT_CONTAINER,
+            storage_filename,
+            contents=encrypted_file.stream,
+            content_type=content_type
+        )
+    except Exception as e:
+        return jsonify({"msg": f"Swift upload failed: {e}"}), 500
+    
     # Create the metadata record for the database
     new_file = File(
         owner_user_id=current_user_id,
         filename=original_filename,
         content_type=content_type,
         size=int(file_size),
-        storage_path=storage_path
+        storage_path=storage_filename
     )
 
     db.session.add(new_file)
@@ -96,13 +124,19 @@ def delete_file_permanently(file_id):
     if file_to_delete.status != 'trashed':
         return jsonify({"msg": "File must be in the trash to be deleted permanently"}), 403
 
-    # Delete the physical file from storage
+    conn = get_swift_conn()
     try:
-        if os.path.exists(file_to_delete.storage_path):
-            os.remove(file_to_delete.storage_path)
+        conn.delete_object(SWIFT_CONTAINER, file_to_delete.storage_path)
     except Exception as e:
-        # Log the error but proceed to delete the DB record
-        print(f"Error deleting physical file {file_to_delete.storage_path}: {e}")
+        print(f"Error deleting from Swift: {e}")
+        
+    # Delete the physical file from storage
+    # try:
+    #     if os.path.exists(file_to_delete.storage_path):
+    #         os.remove(file_to_delete.storage_path)
+    # except Exception as e:
+    #     # Log the error but proceed to delete the DB record
+    #     print(f"Error deleting physical file {file_to_delete.storage_path}: {e}")
 
     # Delete the record from the database
     db.session.delete(file_to_delete)
@@ -132,10 +166,26 @@ def download_file(file_id):
     file_record = File.query.filter_by(id=file_id).first()
     if not file_record:
         return jsonify({"msg": "File not found"}), 404
-        
+    
+    conn = get_swift_conn()
+    try:
+        headers, file_bytes = conn.get_object(SWIFT_CONTAINER, file_record.storage_path)
+    except Exception as e:
+        return jsonify({"msg": f"Swift download failed: {e}"}), 500
+    
     # Extract the directory and the filename from the stored path
-    directory = os.path.dirname(file_record.storage_path)
-    filename = os.path.basename(file_record.storage_path)
+    # directory = os.path.dirname(file_record.storage_path)
+    # filename = os.path.basename(file_record.storage_path)
+    
     
     # Use Flask's send_from_directory to securely serve the file
-    return send_from_directory(directory, filename, as_attachment=True)
+    # return send_from_directory(directory, filename, as_attachment=True)
+    
+    return (
+        file_bytes,
+        200,
+        {
+            "Content-Type": file_record.content_type,
+            "Content-Disposition": f"attachment; filename={file_record.filename}"
+        }
+    )

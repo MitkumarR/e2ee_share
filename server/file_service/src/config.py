@@ -6,10 +6,10 @@ load_dotenv()
 def get_postgres_uri():
     user = os.environ.get('POSTGRES_USER')
     password = os.environ.get('POSTGRES_PASSWORD')
-    host = os.environ.get('POSTGRES_HOST', 'localhost')
-    port = os.environ.get('POSTGRES_PORT', '5432')
+    host = os.environ.get('POSTGRES_HOST')
+    port = os.environ.get('POSTGRES_PORT')
     db_name = os.environ.get('POSTGRES_DB')
-    
+        
     if not all([user, password, db_name]):
         raise ValueError("Missing required database environment variables")
     
@@ -21,6 +21,13 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = get_postgres_uri()
 
+    # Swift Object Storage Configuration
+    SWIFT_AUTH_URL = os.environ.get('SWIFT_AUTH_URL') # e.g., 'http://YOUR_VM_IP/identity/v3'
+    SWIFT_USER = os.environ.get('SWIFT_USER')
+    SWIFT_KEY = os.environ.get('SWIFT_KEY') # This is the password
+    SWIFT_CONTAINER = os.environ.get('SWIFT_CONTAINER')
+    
+    
     @staticmethod
     def init_app(app):
         pass
