@@ -13,6 +13,27 @@
       * **Access Control Service**: Manages the creation and verification of secure, one-time download links.
   * **Client-Side Encryption**: All encryption and decryption operations happen in the user's browser, powered by the Web Crypto API.
 
+## Swift Object Storage (Private Encrypted Storage)
+
+We use **OpenStack Swift** to store encrypted files — providing our own private object storage service instead of relying on third-party providers.
+
+* [What is OpenStack?](https://www.openstack.org/software/)
+* [What is Swift?](https://www.openstack.org/software/releases/dalmatian/components/swift)
+
+For this project, we deployed **Swift All-In-One (SAIO)** with its three core services:
+
+* **Account**
+* **Container**
+* **Object**
+
+This minimal setup is sufficient for our requirements — there’s no need to run the full OpenStack cloud environment.
+
+### References
+
+* Official SAIO documentation: [Swift All-In-One Guide](https://docs.openstack.org/swift/2025.1/development_saio.html)
+* Simplified setup guide for this project: [Project Wiki – SAIO Setup](https://github.com/MitkumarR/e2ee_share/wiki/1.-Setup-SAIO-%28Swift-All-in-One%29-in-Ubuntu-VM)
+
+
 ## Workflow
 
 ![A screenshot of the application](https://github.com/MitkumarR/e2ee_share/blob/main/diagram-workflow.png)
@@ -31,9 +52,11 @@
 
   * **Flask**: A lightweight WSGI web application framework in Python.
   * **PostgreSQL**: A powerful, open-source object-relational database system.
+  * **Openstack Swift Service**: SAIO environment by openstack(devstack) for object storage service. (To store encrypted files)
   * **Redis**: An in-memory data structure store, used for caching and managing one-time links.
   * **Docker**: For containerizing each service, ensuring a consistent and isolated environment.
   * **Gunicorn**: A Python WSGI HTTP Server for UNIX.
+  
 
 ## Project Structure
 
@@ -52,7 +75,7 @@ e2ee_share/
 ## Setup and Installation
 
 ### Prerequisites
-
+ 
   * Docker and Docker Compose
   * Node.js and npm (for local client development)
   * Python and pip (for local backend development)
